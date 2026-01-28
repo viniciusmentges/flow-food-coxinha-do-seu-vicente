@@ -5,25 +5,24 @@ from google.oauth2.service_account import Credentials
 from urllib.parse import quote
 from datetime import date
 
-
 def get_gspread_client():
     creds_info = st.secrets["gcp_service_account"]
-   scopes = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive",
-]
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
     credentials = Credentials.from_service_account_info(creds_info, scopes=scopes)
     return gspread.authorize(credentials)
+
 
 @st.cache_data(ttl=60)
 def load_sheet_df(worksheet_name: str) -> pd.DataFrame:
     client = get_gspread_client()
-    sh = client.open_by_key(st.secrets["SPREADSHEET_ID"])
+    sheet_id = st.secrets["SPREADSHEET_ID"]
+    sh = client.open_by_key(sheet_id)
     ws = sh.worksheet(worksheet_name)
-    # get_all_records falha se tiver colunas sem título ou títulos duplicados
-    # então vamos pegar como lista de listas
-    data = ws.get_all_values()
 
+    data = ws.get_all_values()
     if not data:
         return pd.DataFrame()
 
@@ -31,14 +30,13 @@ def load_sheet_df(worksheet_name: str) -> pd.DataFrame:
     rows = data[1:]
 
     df = pd.DataFrame(rows, columns=headers)
-    
-    # Remove colunas com header vazio (comum sobrar colunas em branco no Sheets)
-    # Seleciona apenas colunas onde o nome não é string vazia
+
     valid_cols = [col for col in df.columns if str(col).strip() != ""]
     df = df[valid_cols]
 
     df.columns = [str(c).strip() for c in df.columns]
     return df
+
 
 def make_wa_link(whatsapp_num: str, message: str) -> str:
     num = "".join([c for c in str(whatsapp_num) if c.isdigit()])
@@ -169,5 +167,6 @@ def ler_lista_pontual_sheets(st, spreadsheet_id: str) -> pd.DataFrame:
     df["enviado"] = df["enviado"].astype(str).str.upper().isin(["TRUE", "VERDADEIRO", "SIM", "1"])
     
     return df[["whatsapp", "nome", "status", "campanha", "enviado"]]
+
 
 
