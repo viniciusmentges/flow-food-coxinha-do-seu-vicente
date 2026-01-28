@@ -5,21 +5,20 @@ from google.oauth2.service_account import Credentials
 from urllib.parse import quote
 from datetime import date
 
-SHEET_ID = "1DKQo3AV4hryoODKrrLyUOWmJ8W7EWSfkj1lxTWBsTp4"
 
 def get_gspread_client():
     creds_info = st.secrets["gcp_service_account"]
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets.readonly",
-        "https://www.googleapis.com/auth/drive.readonly",
-    ]
+   scopes = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
     credentials = Credentials.from_service_account_info(creds_info, scopes=scopes)
     return gspread.authorize(credentials)
 
 @st.cache_data(ttl=60)
 def load_sheet_df(worksheet_name: str) -> pd.DataFrame:
     client = get_gspread_client()
-    sh = client.open_by_key(SHEET_ID)
+    sh = client.open_by_key(st.secrets["SPREADSHEET_ID"])
     ws = sh.worksheet(worksheet_name)
     # get_all_records falha se tiver colunas sem título ou títulos duplicados
     # então vamos pegar como lista de listas
@@ -170,4 +169,5 @@ def ler_lista_pontual_sheets(st, spreadsheet_id: str) -> pd.DataFrame:
     df["enviado"] = df["enviado"].astype(str).str.upper().isin(["TRUE", "VERDADEIRO", "SIM", "1"])
     
     return df[["whatsapp", "nome", "status", "campanha", "enviado"]]
+
 
